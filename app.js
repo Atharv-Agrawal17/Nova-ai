@@ -1,5 +1,5 @@
 /* =========================================================
-   NOVA AI — FRONTEND ENGINE
+   NOVA AI — REAL CHAT FRONTEND
    ========================================================= */
 
 const messageInput = document.getElementById("messageInput");
@@ -18,25 +18,44 @@ let isWaiting = false;
 
 
 /* =========================================================
-   INITIALIZATION
+   STARTUP
    ========================================================= */
 
 document.addEventListener("DOMContentLoaded", () => {
     loadTheme();
     loadHistory();
     resizeInput();
+    updateSendButton();
 
     messageInput.focus();
 });
 
 
 /* =========================================================
-   MESSAGE INPUT
+   INPUT
    ========================================================= */
 
 messageInput.addEventListener("input", () => {
+
     resizeInput();
     updateSendButton();
+
+});
+
+
+messageInput.addEventListener("keydown", event => {
+
+    if (
+        event.key === "Enter" &&
+        !event.shiftKey
+    ) {
+
+        event.preventDefault();
+
+        sendMessage();
+
+    }
+
 });
 
 
@@ -44,21 +63,24 @@ function resizeInput() {
 
     messageInput.style.height = "auto";
 
-    const newHeight =
-        Math.min(messageInput.scrollHeight, 150);
+    const height =
+        Math.min(
+            messageInput.scrollHeight,
+            150
+        );
 
     messageInput.style.height =
-        `${newHeight}px`;
+        `${height}px`;
+
 }
 
 
 function updateSendButton() {
 
-    const hasText =
-        messageInput.value.trim().length > 0;
-
     sendButton.disabled =
-        !hasText || isWaiting;
+        messageInput.value.trim().length === 0 ||
+        isWaiting;
+
 }
 
 
@@ -66,18 +88,10 @@ function updateSendButton() {
    SEND MESSAGE
    ========================================================= */
 
-sendButton.addEventListener("click", sendMessage);
-
-
-messageInput.addEventListener("keydown", event => {
-
-    if (event.key === "Enter" && !event.shiftKey) {
-
-        event.preventDefault();
-
-        sendMessage();
-    }
-});
+sendButton.addEventListener(
+    "click",
+    sendMessage
+);
 
 
 async function sendMessage() {
@@ -89,50 +103,106 @@ async function sendMessage() {
 
     if (!text) return;
 
+
     hideWelcome();
 
     addUserMessage(text);
+
 
     conversation.push({
         role: "user",
         content: text
     });
 
+
     messageInput.value = "";
 
     resizeInput();
+
 
     isWaiting = true;
 
     updateSendButton();
 
-    const typingElement =
+
+    const typing =
         showTypingIndicator();
+
 
     scrollToBottom();
 
-    /*
-     * TEMPORARY FRONTEND RESPONSE
-     *
-     * In the next step this will be replaced
-     * with a real backend/API request.
-     */
 
-    await delay(900);
+    try {
 
-    removeTypingIndicator(typingElement);
+        const response =
+            await fetch(
+                "/api/chat",
+                {
+                    method: "POST",
 
-    const response =
-        generateTemporaryResponse(text);
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
 
-    addAIMessage(response);
+                    body:
+                        JSON.stringify({
+                            messages:
+                                conversation
+                        })
+                }
+            );
 
-    conversation.push({
-        role: "assistant",
-        content: response
-    });
 
-    saveCurrentConversation();
+        const data =
+            await response.json();
+
+
+        removeTypingIndicator(typing);
+
+
+        if (!response.ok || !data.success) {
+
+            throw new Error(
+                data.error ||
+                "NOVA could not generate a response."
+            );
+
+        }
+
+
+        addAIMessage(
+            data.response
+        );
+
+
+        conversation.push({
+            role: "assistant",
+            content: data.response
+        });
+
+
+        saveCurrentConversation();
+
+
+    } catch (error) {
+
+        removeTypingIndicator(typing);
+
+
+        console.error(
+            "NOVA request error:",
+            error
+        );
+
+
+        addAIMessage(
+            "⚠️ I couldn't connect to my AI engine right now.\n\n" +
+            error.message
+        );
+
+    }
+
 
     isWaiting = false;
 
@@ -141,6 +211,7 @@ async function sendMessage() {
     messageInput.focus();
 
     scrollToBottom();
+
 }
 
 
@@ -156,6 +227,7 @@ function addUserMessage(text) {
     message.className =
         "message user";
 
+
     const content =
         document.createElement("div");
 
@@ -165,11 +237,11 @@ function addUserMessage(text) {
     content.textContent =
         text;
 
+
     message.appendChild(content);
 
     messages.appendChild(message);
 
-    scrollToBottom();
 }
 
 
@@ -185,13 +257,16 @@ function addAIMessage(text) {
     message.className =
         "message ai";
 
+
     const avatar =
         document.createElement("div");
 
     avatar.className =
         "message-avatar";
 
-    avatar.textContent = "✦";
+    avatar.textContent =
+        "✦";
+
 
     const content =
         document.createElement("div");
@@ -199,8 +274,14 @@ function addAIMessage(text) {
     content.className =
         "message-content";
 
+
+    /*
+     * Preserve line breaks.
+     */
+
     content.textContent =
         text;
+
 
     message.appendChild(avatar);
 
@@ -208,12 +289,14 @@ function addAIMessage(text) {
 
     messages.appendChild(message);
 
-    scrollToBottom();
+
+    return message;
+
 }
 
 
 /* =========================================================
-   TYPING INDICATOR
+   TYPING
    ========================================================= */
 
 function showTypingIndicator() {
@@ -224,13 +307,16 @@ function showTypingIndicator() {
     message.className =
         "message ai";
 
+
     const avatar =
         document.createElement("div");
 
     avatar.className =
         "message-avatar";
 
-    avatar.textContent = "✦";
+    avatar.textContent =
+        "✦";
+
 
     const typing =
         document.createElement("div");
@@ -238,13 +324,20 @@ function showTypingIndicator() {
     typing.className =
         "typing";
 
-    for (let i = 0; i < 3; i++) {
+
+    for (
+        let i = 0;
+        i < 3;
+        i++
+    ) {
 
         const dot =
             document.createElement("span");
 
         typing.appendChild(dot);
+
     }
+
 
     message.appendChild(avatar);
 
@@ -252,9 +345,9 @@ function showTypingIndicator() {
 
     messages.appendChild(message);
 
-    scrollToBottom();
 
     return message;
+
 }
 
 
@@ -263,19 +356,27 @@ function removeTypingIndicator(element) {
     if (element) {
         element.remove();
     }
+
 }
 
 
 /* =========================================================
-   WELCOME SCREEN
+   WELCOME
    ========================================================= */
 
 function hideWelcome() {
 
-    if (!welcome) return;
-
     welcome.style.display =
         "none";
+
+}
+
+
+function showWelcome() {
+
+    welcome.style.display =
+        "";
+
 }
 
 
@@ -283,23 +384,31 @@ function hideWelcome() {
    NEW CHAT
    ========================================================= */
 
-newChatButton.addEventListener("click", () => {
+newChatButton.addEventListener(
+    "click",
+    startNewChat
+);
+
+
+function startNewChat() {
 
     conversation = [];
 
     messages.innerHTML = "";
 
-    welcome.style.display =
-        "";
+    showWelcome();
 
     messageInput.value = "";
 
     resizeInput();
 
+    updateSendButton();
+
     closeMobileSidebar();
 
     messageInput.focus();
-});
+
+}
 
 
 /* =========================================================
@@ -308,134 +417,135 @@ newChatButton.addEventListener("click", () => {
 
 suggestions.forEach(button => {
 
-    button.addEventListener("click", () => {
+    button.addEventListener(
+        "click",
+        () => {
 
-        const prompt =
-            button.dataset.prompt;
+            const prompt =
+                button.dataset.prompt;
 
-        messageInput.value =
-            prompt;
+            messageInput.value =
+                prompt;
 
-        resizeInput();
+            resizeInput();
 
-        updateSendButton();
+            updateSendButton();
 
-        sendMessage();
-    });
+            sendMessage();
+
+        }
+    );
 
 });
 
 
 /* =========================================================
-   TEMPORARY RESPONSE ENGINE
-   ========================================================= */
-
-function generateTemporaryResponse(text) {
-
-    const lower =
-        text.toLowerCase();
-
-    if (
-        lower.includes("hello") ||
-        lower.includes("hi") ||
-        lower.includes("hey")
-    ) {
-        return "Hello! I'm NOVA. I'm ready to help you. 🚀";
-    }
-
-    if (lower.includes("who are you")) {
-
-        return (
-            "I'm NOVA, your AI assistant. " +
-            "I'm being built to answer questions, " +
-            "help you learn, create content, write code, " +
-            "and much more."
-        );
-    }
-
-    if (
-        lower.includes("space") ||
-        lower.includes("universe")
-    ) {
-
-        return (
-            "Space is enormous and fascinating. " +
-            "There are billions of galaxies in the observable " +
-            "universe, with many containing billions of stars."
-        );
-    }
-
-    if (
-        lower.includes("code") ||
-        lower.includes("program")
-    ) {
-
-        return (
-            "Absolutely! NOVA will be able to help with " +
-            "programming, debugging, explanations, and " +
-            "building complete projects once the AI backend " +
-            "is connected."
-        );
-    }
-
-    return (
-        "That's a great question. I'm currently running " +
-        "in development mode. In the next step, we'll " +
-        "connect NOVA to a real AI model so it can generate " +
-        "much more capable answers."
-    );
-}
-
-
-/* =========================================================
-   CHAT HISTORY
+   HISTORY
    ========================================================= */
 
 function saveCurrentConversation() {
 
-    if (conversation.length === 0) {
+    if (
+        conversation.length === 0
+    ) {
         return;
     }
 
-    const firstUserMessage =
+
+    const first =
         conversation.find(
-            message => message.role === "user"
+            message =>
+                message.role === "user"
         );
 
-    if (!firstUserMessage) {
-        return;
-    }
+
+    if (!first) return;
+
 
     const history =
         JSON.parse(
-            localStorage.getItem("novaHistory") || "[]"
+            localStorage.getItem(
+                "novaHistory"
+            ) || "[]"
         );
 
-    const title =
-        firstUserMessage.content
-            .slice(0, 42);
-
-    const item = {
-        id: Date.now(),
-        title,
-        conversation
-    };
-
-    history.unshift(item);
 
     /*
-     * Keep the browser history manageable.
+     * Replace the currently active
+     * conversation instead of creating
+     * a duplicate after every message.
      */
 
-    const limitedHistory =
+    const existingId =
+        localStorage.getItem(
+            "novaActiveChat"
+        );
+
+
+    let chat;
+
+
+    if (existingId) {
+
+        chat =
+            history.find(
+                item =>
+                    String(item.id) ===
+                    String(existingId)
+            );
+
+    }
+
+
+    if (chat) {
+
+        chat.conversation =
+            conversation;
+
+    } else {
+
+        chat = {
+
+            id: Date.now(),
+
+            title:
+                first.content
+                    .slice(0, 42),
+
+            conversation: [
+                ...conversation
+            ]
+
+        };
+
+
+        history.unshift(chat);
+
+
+        localStorage.setItem(
+            "novaActiveChat",
+            String(chat.id)
+        );
+
+    }
+
+
+    /*
+     * Keep the latest 25 conversations.
+     */
+
+    const limited =
         history.slice(0, 25);
+
 
     localStorage.setItem(
         "novaHistory",
-        JSON.stringify(limitedHistory)
+        JSON.stringify(limited)
     );
 
+
     loadHistory();
+
 }
 
 
@@ -443,10 +553,14 @@ function loadHistory() {
 
     const history =
         JSON.parse(
-            localStorage.getItem("novaHistory") || "[]"
+            localStorage.getItem(
+                "novaHistory"
+            ) || "[]"
         );
 
+
     chatHistory.innerHTML = "";
+
 
     history.forEach(item => {
 
@@ -462,13 +576,17 @@ function loadHistory() {
         button.title =
             item.title;
 
+
         button.addEventListener(
             "click",
             () => loadConversation(item)
         );
 
+
         chatHistory.appendChild(button);
+
     });
+
 }
 
 
@@ -479,32 +597,51 @@ function loadConversation(item) {
             ? [...item.conversation]
             : [];
 
+
+    localStorage.setItem(
+        "novaActiveChat",
+        String(item.id)
+    );
+
+
     messages.innerHTML = "";
 
     hideWelcome();
 
-    conversation.forEach(message => {
 
-        if (message.role === "user") {
+    conversation.forEach(
+        message => {
 
-            addUserMessage(
-                message.content
-            );
+            if (
+                message.role ===
+                "user"
+            ) {
 
-        } else if (
-            message.role === "assistant"
-        ) {
+                addUserMessage(
+                    message.content
+                );
 
-            addAIMessage(
-                message.content
-            );
+            }
+
+            else if (
+                message.role ===
+                "assistant"
+            ) {
+
+                addAIMessage(
+                    message.content
+                );
+
+            }
+
         }
+    );
 
-    });
 
     closeMobileSidebar();
 
     scrollToBottom();
+
 }
 
 
@@ -520,31 +657,43 @@ themeButton.addEventListener(
 
 function toggleTheme() {
 
-    document.body.classList.toggle("dark");
+    document.body.classList.toggle(
+        "dark"
+    );
 
-    const isDark =
-        document.body.classList.contains("dark");
+
+    const dark =
+        document.body.classList.contains(
+            "dark"
+        );
+
 
     localStorage.setItem(
         "novaTheme",
-        isDark ? "dark" : "light"
+        dark
+            ? "dark"
+            : "light"
     );
+
 }
 
 
 function loadTheme() {
 
-    const saved =
-        localStorage.getItem("novaTheme");
+    const theme =
+        localStorage.getItem(
+            "novaTheme"
+        );
 
-    if (saved === "dark") {
 
-        document.body.classList.add("dark");
+    if (theme === "dark") {
 
-    } else if (saved === "light") {
+        document.body.classList.add(
+            "dark"
+        );
 
-        document.body.classList.remove("dark");
     }
+
 }
 
 
@@ -556,7 +705,9 @@ menuButton.addEventListener(
     "click",
     () => {
 
-        sidebar.classList.toggle("open");
+        sidebar.classList.toggle(
+            "open"
+        );
 
     }
 );
@@ -564,59 +715,68 @@ menuButton.addEventListener(
 
 function closeMobileSidebar() {
 
-    sidebar.classList.remove("open");
+    sidebar.classList.remove(
+        "open"
+    );
+
 }
 
 
 /* =========================================================
-   SCROLLING
+   SCROLL
    ========================================================= */
 
 function scrollToBottom() {
 
     const chatArea =
-        document.getElementById("chatArea");
+        document.getElementById(
+            "chatArea"
+        );
+
 
     requestAnimationFrame(() => {
 
         chatArea.scrollTo({
-            top: chatArea.scrollHeight,
-            behavior: "smooth"
+
+            top:
+                chatArea.scrollHeight,
+
+            behavior:
+                "smooth"
+
         });
 
     });
+
 }
 
 
 /* =========================================================
-   UTILITY
-   ========================================================= */
-
-function delay(milliseconds) {
-
-    return new Promise(resolve => {
-
-        setTimeout(
-            resolve,
-            milliseconds
-        );
-
-    });
-}
-
-
-/* =========================================================
-   PREVENT ACCIDENTAL FORM BEHAVIOR
+   KEYBOARD / FOCUS
    ========================================================= */
 
 document.addEventListener(
-    "submit",
-    event => event.preventDefault()
+    "keydown",
+    event => {
+
+        if (
+            event.key === "/" &&
+            document.activeElement !==
+                messageInput
+        ) {
+
+            event.preventDefault();
+
+            messageInput.focus();
+
+        }
+
+    }
 );
 
 
 /* =========================================================
-   GLOBAL ERROR HANDLING
+   GLOBAL ERROR LOG
    ========================================================= */
 
 window.addEventListener(
@@ -624,18 +784,23 @@ window.addEventListener(
     event => {
 
         console.error(
-            "NOVA error:",
+            "NOVA frontend error:",
             event.error
         );
 
     }
 );
 
+
+/* =========================================================
+   STARTUP MESSAGE
+   ========================================================= */
+
 console.log(
-    "%cNOVA AI",
-    "font-size:24px;font-weight:bold;"
+    "%c✦ NOVA AI",
+    "font-size:26px;font-weight:800;"
 );
 
 console.log(
-    "NOVA frontend initialized."
+    "NOVA frontend connected."
 );
