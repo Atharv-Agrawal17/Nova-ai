@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>NOVA AI</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="app">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+
+            <div class="logo">
+                <div class="logo-orb">✦</div>
+                <span>NOVA</span>
+            </div>
+
+            <button class="new-chat" id="newChat">
+                <span>＋</span>
+                New chat
+            </button>
+
+            <div class="sidebar-section">
+                <div class="section-title">Chats</div>
+
+                <div id="chatHistory"></div>
+            </div>
+
+            <div class="sidebar-bottom">
+
+                <button class="side-button" id="themeButton">
+                    <span>◐</span>
+                    Appearance
+                </button>
+
+                <button class="side-button">
+                    <span>⚙</span>
+                    Settings
+                </button>
+
+            </div>
+
+        </aside>
+
+
+        <!-- MAIN -->
+        <main class="main">
+
+            <!-- HEADER -->
+            <header class="topbar">
+
+                <div class="mobile-logo">
+                    <div class="logo-orb small">✦</div>
+                    <strong>NOVA AI</strong>
+                </div>
+
+                <div class="model-selector">
+                    <span>NOVA</span>
+                    <span class="model-dot"></span>
+                </div>
+
+                <button class="menu-button" id="menuButton">
+                    ☰
+                </button>
+
+            </header>
+
+
+            <!-- CHAT -->
+            <section class="chat-area" id="chatArea">
+
+                <!-- WELCOME SCREEN -->
+                <div class="welcome" id="welcome">
+
+                    <div class="welcome-orb">
+                        ✦
+                    </div>
+
+                    <h1>
+                        What can I help you with?
+                    </h1>
+
+                    <p>
+                        Ask NOVA anything. Learn, create,
+                        explore and solve problems.
+                    </p>
+
+
+                    <div class="suggestions">
+
+                        <button class="suggestion"
+                                data-prompt="Explain something interesting about space">
+                            <span>🚀</span>
+                            <div>
+                                <strong>Explore space</strong>
+                                <small>Discover something fascinating</small>
+                            </div>
+                        </button>
+
+                        <button class="suggestion"
+                                data-prompt="Help me learn something new">
+                            <span>🧠</span>
+                            <div>
+                                <strong>Learn something</strong>
+                                <small>Teach me a new concept</small>
+                            </div>
+                        </button>
+
+                        <button class="suggestion"
+                                data-prompt="Help me write something creative">
+                            <span>✍️</span>
+                            <div>
+                                <strong>Create</strong>
+                                <small>Write something amazing</small>
+                            </div>
+                        </button>
+
+                        <button class="suggestion"
+                                data-prompt="Give me an interesting challenge">
+                            <span>⚡</span>
+                            <div>
+                                <strong>Challenge me</strong>
+                                <small>Try something difficult</small>
+                            </div>
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <!-- MESSAGES -->
+                <div class="messages" id="messages"></div>
+
+            </section>
+
+
+            <!-- INPUT -->
+            <div class="input-wrapper">
+
+                <div class="input-box">
+
+                    <button class="attach-button"
+                            title="Attach">
+                        ＋
+                    </button>
+
+                    <textarea
+                        id="messageInput"
+                        rows="1"
+                        placeholder="Message NOVA..."
+                        autocomplete="off"></textarea>
+
+                    <button class="send-button"
+                            id="sendButton"
+                            title="Send">
+                        ↑
+                    </button>
+
+                </div>
+
+                <div class="disclaimer">
+                    NOVA can make mistakes. Check important information.
+                </div>
+
+            </div>
+
+        </main>
+
+    </div>
+
+
+    <script src="app.js"></script>
+
+</body>
+</html>
